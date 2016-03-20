@@ -6,15 +6,9 @@ module LogMerge
     DATE_FORMAT = /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}/
 
 
-    def initialize(filename, io = nil)
-      @filename        = filename
-      
-      # Allow class to accept an IO object, mainly for testing
-      if io
-        @fh = io
-      else
-        @fh              = File.open(filename, 'r')
-      end
+    def initialize(io, log_alias = nil)
+      @log_alias   = log_alias
+      @fh = io
       @current_line    = nil
       @next_log_bugger = nil
     end
@@ -30,7 +24,24 @@ module LogMerge
     end
     
     def next
-      @current_line = LogLineBuilder.build(read_full_log_entry)
+      @current_line = LogLineBuilder.build(read_full_log_entry, @log_alias)
+    end
+
+    # Allow the actual logReader objects to be sorted based on their
+    # current log entry timestamp. This allow use to find the next
+    # log message in the sequence
+    def <=> obj
+      me    = self.current
+      other = obj.current
+      if me == nil && other == nil
+        0
+      elsif me == nil
+        1
+      elsif other == nil
+        -1
+      else
+        me <=> other
+      end
     end
 
 
@@ -63,7 +74,6 @@ module LogMerge
         end
       end
         
-
       # Here we have found a log line, either by the loop above, or from the next_log_buffer
       # Here we need to read more lines until we find another log line match, which will
       # replace the contents of the buffer
