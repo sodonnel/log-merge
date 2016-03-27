@@ -5,12 +5,15 @@ module LogMerge
     # 2016-01-13 22:28:09,834
     DATE_FORMAT = /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}/
 
+    attr_reader :io_position
 
     def initialize(io, log_alias = nil)
       @log_alias   = log_alias
       @fh = io
       @current_line    = nil
       @next_log_bugger = nil
+      @io_position     = @fh.pos
+      @reached_eof     = false
     end
 
     def previous
@@ -50,7 +53,7 @@ module LogMerge
     # Log entry can run over multiple lines in the file - think of a
     # stack track which really belongs to the log line above it
     def read_full_log_entry
-      if @fh.closed?
+      if @reached_eof
         return nil
       end
       
@@ -65,11 +68,12 @@ module LogMerge
             line = @fh.readline
             if line.match(DATE_FORMAT)
               this_log_line << line
+              @io_position = @fh.pos
               break
             end
           end
         rescue EOFError
-          @fh.close
+          @reached_eof = true
           return nil
         end
       end
@@ -79,6 +83,10 @@ module LogMerge
       # replace the contents of the buffer
       begin
         loop do
+          # Need to keep the position which matches the last line seen by the reader, ie any buffered lines
+          # should not count toward the position. So get the position before each readline. That means it will
+          # always hold the trailing lines end position
+          @io_position = @fh.pos
           line = @fh.readline
           if line.match(DATE_FORMAT)
             @next_log_buffer = line
@@ -88,7 +96,8 @@ module LogMerge
           end
         end
       rescue EOFError
-        @fh.close
+        # The logReader should not close the IO object passed to it.
+        @reached_eof = true
       end
       this_log_line
     end
