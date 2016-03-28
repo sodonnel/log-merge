@@ -6,18 +6,28 @@ module LogMerge
       return nil unless lines
 
       entry = LogLine.new
-      pieces = lines.split(/\s/, 4)
-      
-      # Store the content without the leading date and level in stripped content
-      entry.content = pieces.pop
 
-      if pieces.length == 3
-        entry.level     = pieces.pop
-      end
-                                                            # 2016-01-13 22:28:09,834
-      entry.timestamp = DateTime.strptime(pieces.join(" "), "%Y-%m-%d %H:%M:%S,%L")
+      # STARTS_WITH
+      #   optional alias
+      #   date 
+      #   level
+      #   rest of content# END OF STRING
+      
+      lines =~ /^
+              (?:([^\s]+)\s)?                                 # optional alias
+              (\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})    # date
+              \s                    
+              ([^\s]+)                                        # log level
+               \s+
+              (.+)\Z/mx                                       # rest of lines
+
+      entry.content      = $4
+      entry.level        = $3
+                                                 # 2016-01-13 22:28:09,834
+      entry.timestamp    = DateTime.strptime($2, "%Y-%m-%d %H:%M:%S,%L")
       entry.raw_content  = lines
-      entry.log_alias = log_alias
+      entry.raw_content  = lines
+      entry.log_alias    = log_alias || $1
       entry
     end
 
