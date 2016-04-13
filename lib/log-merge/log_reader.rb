@@ -9,6 +9,8 @@ module LogMerge
     DATE_FORMAT =  /^(?:[^\s]+\s)?\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}/
 
     attr_reader :io_position
+    attr_accessor :index
+
 
     def initialize(io, log_alias = nil)
       @log_alias   = log_alias
@@ -17,6 +19,7 @@ module LogMerge
       @next_log_bugger = nil
       @io_position     = @fh.pos
       @reached_eof     = false
+      @index           = nil
 
       # To allow peeking ahead in the stream without advancing the
       # iterator, we find and buffer the next entry before anything
@@ -83,7 +86,7 @@ module LogMerge
         me <=> other
       end
     end
-
+    
 
     private
 
@@ -116,7 +119,7 @@ module LogMerge
         return nil
       end
 
-      # Here we have found a log line, as they must at least be one in @next_log_buffer
+      # Here we have found a log line, as there must at least be one in @next_log_buffer
       # Here we need to read more lines until we find another log line match, which will
       # replace the contents of the buffer
       this_log_line = @next_log_buffer

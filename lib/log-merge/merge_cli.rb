@@ -5,6 +5,8 @@ module LogMerge
     def self.run(args)
 
       files = []
+      output_filename = "./merged"
+      build_index     = true
 
       opts = OptionParser.new do |opts|
         opts.on("-f", "--file FILE", "Files to merge") do |f|
@@ -19,9 +21,12 @@ module LogMerge
         end        
 
         opts.on("-o", "--output FILENAME", "Override default output filename") do |f|
-          files.last.alias    = f
+          output_filename = f
         end        
 
+        opts.on("--no-index", "Do not build an index when merging the files") do |f|
+          build_index = false
+        end        
 
       end
 
@@ -32,8 +37,16 @@ module LogMerge
         fh = File.open(f.filename)
         combiner.add_log_reader(LogMerge::LogReader.new(fh, f.alias))
       end
-      output = File.open('merged.txt', 'w')
-      combiner.merge(output)
+      File.open(output_filename, 'w') do |o|
+        index_filename = "#{output_filename}.index"
+        if !build_index
+          # The combiner will not create an index unless
+          # a filename is passed in, so if you don't want the
+          # index, set the filename to nil
+          index_filename = nil
+        end
+        combiner.merge(o, index_filename)
+      end
     end
 
   end
