@@ -58,6 +58,14 @@ module LogMerge
     # Search through @index[:minutes] backwards for the first date earlier
     # than the passed date, then return the position
     def io_position_for_dtm(dtm)
+      # Ruby returns hash keys in the order they were added. As they *should*
+      # have been added in ascending order, it means there is no need to sort.
+      @index[:minutes].keys.reverse_each do |k|
+        if dtm >= k
+          return @index[:minutes][k][:log_position]
+        end
+      end
+      return 0
     end
 
     def aliases

@@ -55,6 +55,25 @@ module LogMerge
       unless ts.is_a?(Date)
         raise "#{ts.class} is not a Date or Date subclass"
       end
+
+      # If the index has been set, then use it to find a position to start
+      # searching from, otherwise we just search from wherever the io_stream
+      # is already at, which is slow if the file is large
+      if @index
+        pos = @index.io_position_for_dtm(ts)
+        if pos && pos > @io_position
+          # Then we have to move the stream forward to new pos. To do that, we need
+          # to reset the stream by clearing current_line and the next_log_buffer
+          # and then resetting next_log_buffer
+          @current_line = nil
+          @next_log_buffer = nil
+          @fh.seek(pos, IO::SEEK_SET)
+          fill_next_log_buffer
+        end
+        # If POS was earlier than the current position, it means the stream
+        # is already after the requested dtm, so current / next will be unchanged
+        # when this method returns
+      end
       
       # Peek at @next_log_buffer as we know if contains at least the first
       # line of a log entry and this lets us test if the next line matches
