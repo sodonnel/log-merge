@@ -18,6 +18,10 @@ module LogMerge
         h[k] = v
       }                           
     end
+
+    def get_index_hash
+      @index
+    end
     
     def index(log_line, log_position=nil)
       date_to_minute = datetime_to_minute(log_line.timestamp)

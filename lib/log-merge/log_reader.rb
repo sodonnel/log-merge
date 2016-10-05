@@ -68,6 +68,7 @@ module LogMerge
           @current_line = nil
           @next_log_buffer = nil
           @fh.seek(pos, IO::SEEK_SET)
+          @io_position = pos
           fill_next_log_buffer
         end
         # If POS was earlier than the current position, it means the stream
