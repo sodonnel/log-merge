@@ -4,6 +4,7 @@ require 'optparse'
 
 require 'log-merge/reverse_file_reader'
 require 'log-merge/log_reader'
+require 'log-merge/reverse_log_reader'
 require 'log-merge/log_line_builder'
 require 'log-merge/log_line'
 require 'log-merge/log_combiner'
