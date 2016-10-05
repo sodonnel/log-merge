@@ -65,7 +65,6 @@ module LogMerge
     end
 
     def set_positions
-      @fh.seek(0, IO::SEEK_END)
       @physical_pos = @fh.pos
       @logical_pos = @fh.pos
     end
