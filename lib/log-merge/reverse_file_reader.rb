@@ -28,6 +28,15 @@ module LogMerge
         readline
       end
     end
+
+    def each_line
+      begin
+        while l = readline do
+          yield l
+        end
+      rescue EOFError
+      end
+    end
       
     def pos
       @logical_pos
