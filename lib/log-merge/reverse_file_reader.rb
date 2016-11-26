@@ -63,9 +63,7 @@ module LogMerge
       @fh.seek(@physical_pos, IO::SEEK_SET)
       buff = @fh.read(bytes_to_read)
       buff = buff + @buffer
-      # This regex splits on newline, but it retains the newline
-      # character in the lines that are split out.
-      @lines = buff.split(/(?<=\n)/)
+      @lines = buff.lines
       # The earliest line might be a partial line
       # so split it off unless EOF has been reached
       unless @eof
