@@ -8,6 +8,14 @@ module LogMerge
     # lines that start xxxx123 2016-01-13 22:28:09,834 - ie have an alias before the log
     DATE_FORMAT =  /^(?:[^\s]+\s)?\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}/
 
+    MATCHER = /^                                             # STARTS WITH
+              (?:([^\s]+)\s)?                                 #   optional alias
+              (\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})    #   date
+              \s?                   
+              ([^\s]*)                                        #   log level
+               \s?
+              (.*)\Z/mx                                       #   rest of line
+
     attr_reader :io_position
     attr_accessor :index
 
@@ -38,7 +46,7 @@ module LogMerge
     end
     
     def next
-      @current_line = LogLineBuilder.build(read_full_log_entry, @log_alias)
+      @current_line = read_full_log_entry
     end
 
 
@@ -80,7 +88,7 @@ module LogMerge
       # line of a log entry and this lets us test if the next line matches
       # without advancing the iterator
       loop do
-        if @reached_eof || ts <= LogLineBuilder.build(@next_log_buffer).timestamp
+        if @reached_eof || ts <= @next_log_buffer.timestamp
           break
         end
         self.next
@@ -120,8 +128,8 @@ module LogMerge
       begin
         loop do
           line = @fh.readline
-          if line.match(DATE_FORMAT)
-            @next_log_buffer = line
+          if line.match(MATCHER)
+            @next_log_buffer = LogLine.new(line, $1 || @log_alias, $2, $3, $4)
             # NOTE we don't advance the io_position here as the user of
             # the LogReader has not yet see this line by calling next or current
             break
@@ -150,11 +158,11 @@ module LogMerge
           # always hold the trailing lines end position
           @io_position = @fh.pos
           line = @fh.readline
-          if line.match(DATE_FORMAT)
-            @next_log_buffer = line
+          if line.match(MATCHER)
+            @next_log_buffer = LogLine.new(line, $1 || @log_alias, $2, $3, $4)
             break
           else
-            this_log_line << line
+            this_log_line.append(line)
           end
         end
       rescue EOFError
