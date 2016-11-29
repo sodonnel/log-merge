@@ -26,7 +26,7 @@ module LogMerge
       entry.content      = $4
       entry.level        = $3
                                                  # 2016-01-13 22:28:09,834
-      entry.timestamp    = DateTime.strptime($2, "%Y-%m-%d %H:%M:%S,%L")
+      entry.timestamp    = $2 #DateTime.strptime($2, "%Y-%m-%d %H:%M:%S,%L")
       entry.raw_content  = lines
       entry.log_alias    = log_alias || $1
       entry
