@@ -8,6 +8,15 @@ module LogMerge
     # lines that start xxxx123 2016-01-13 22:28:09,834 - ie have an alias before the log
     DATE_FORMAT =  /^(?:[^\s]+\s)?\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}/
 
+    MATCHER = /^                                             # STARTS WITH
+              (?:([^\s]+)\s)?                                 #   optional alias
+              (\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})    #   date
+              \s?                   
+              ([^\s]*)                                        #   log level
+               \s?
+              (.*)\Z/mx                                       #   rest of line
+
+
     attr_accessor :index
 
     def initialize(io, log_alias = nil)
@@ -35,7 +44,7 @@ module LogMerge
     end
     
     def next
-      @current_line = LogLineBuilder.build(read_full_log_entry, @log_alias)
+      @current_line = read_full_log_entry
     end
 
     # Moves the IO stream forward to the passed date / datetime
@@ -48,39 +57,7 @@ module LogMerge
     # If the stream has already advanced past the requested date, then this method
     # will silently return and current / next will be unchanged
     def skip_to_time(ts)
-      unless ts.is_a?(Date)
-        raise "#{ts.class} is not a Date or Date subclass"
-      end
-
-      # If the index has been set, then use it to find a position to start
-      # searching from, otherwise we just search from wherever the io_stream
-      # is already at, which is slow if the file is large
-      if @index
-        pos = @index.io_position_for_dtm(ts)
-        if pos && pos > @io_position
-          # Then we have to move the stream forward to new pos. To do that, we need
-          # to reset the stream by clearing current_line and the next_log_buffer
-          # and then resetting next_log_buffer
-          @current_line = nil
-          @next_log_buffer = nil
-          @fh.seek(pos, IO::SEEK_SET)
-          @io_position = pos
-          fill_next_log_buffer
-        end
-        # If POS was earlier than the current position, it means the stream
-        # is already after the requested dtm, so current / next will be unchanged
-        # when this method returns
-      end
-      
-      # Peek at @next_log_buffer as we know if contains at least the first
-      # line of a log entry and this lets us test if the next line matches
-      # without advancing the iterator
-      loop do
-        if @reached_eof || ts <= LogLineBuilder.build(@next_log_buffer).timestamp
-          break
-        end
-        self.next
-      end
+      raise "not implemented"
     end
 
     # Allow the actual logReader objects to be sorted based on their
@@ -116,20 +93,23 @@ module LogMerge
       end
 
       lines = []
+      log_entry = nil
       begin
         loop do
           line = @rfr.readline
-          lines.unshift line
-          if line.match(DATE_FORMAT)
+          if line.match(MATCHER)
+            log_entry = LogLine.new(line, $1 || @log_alias, $2, $3, $4)
             break
           end
+          lines.unshift line
         end
       rescue EOFError
         @reached_eof = true
         # Disguard any lines built up as the line starting the log message has not been found
         return nil
       end
-      lines.join("")
+      log_entry.append(lines.join(""))
+      log_entry
     end
           
   end
